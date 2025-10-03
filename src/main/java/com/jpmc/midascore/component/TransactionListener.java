@@ -1,10 +1,18 @@
 package com.jpmc.midascore.component;
+
 import com.jpmc.midascore.foundation.Transaction;
+import com.jpmc.midascore.service.TransactionService;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
 @Component
 public class TransactionListener {
+
+    private final TransactionService transactionService;
+
+    public TransactionListener(TransactionService transactionService) {
+        this.transactionService = transactionService;
+    }
 
     @KafkaListener(
         topics = "${general.kafka-topic}",
@@ -12,7 +20,7 @@ public class TransactionListener {
         containerFactory = "kafkaListenerContainerFactory"
     )
     public void consume(Transaction transaction) {
-        //
-        System.out.println("Received transaction: " + transaction);
+        boolean ok = transactionService.process(transaction);
+        System.out.println("Received transaction: " + transaction + " persisted=" + ok);
     }
 }
