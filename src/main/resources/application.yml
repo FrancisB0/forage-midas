@@ -1,2 +1,9 @@
+server:
+  port: 33400
+
+spring:
+  main:
+    web-application-type: servlet
+
 general:
   kafka-topic: test-topic
