@@ -14,13 +14,28 @@ public class TransactionListener {
         this.transactionService = transactionService;
     }
 
-    @KafkaListener(
-        topics = "${general.kafka-topic}",
-        groupId = "midas-core-group",
-        containerFactory = "kafkaListenerContainerFactory"
-    )
-    public void consume(Transaction transaction) {
-        boolean ok = transactionService.process(transaction);
-        System.out.println("Received transaction: " + transaction + " persisted=" + ok);
+    // Primary JSON listener (matches KafkaProducer sending Transaction objects)
+    @KafkaListener(topics = "${general.kafka-topic}", groupId = "midas-core-group", containerFactory = "kafkaListenerContainerFactory")
+    public void consume(Transaction t) {
+        if (t != null) {
+            boolean ok = transactionService.process(t);
+            System.out.println("JSON_LISTENER sender=" + t.getSenderId() + " recipient=" + t.getRecipientId() + " amount=" + t.getAmount() + " applied=" + ok);
+        }
+    }
+
+    // Fallback: if anything comes through as raw text (defensive)
+    @KafkaListener(topics = "${general.kafka-topic}", groupId = "midas-core-group-raw")
+    public void consumeRaw(String line) {
+        if (line == null || line.isBlank()) return;
+        String[] parts = line.trim().split(",\\s*");
+        if (parts.length >= 3) {
+            try {
+                Transaction t = new Transaction(Long.parseLong(parts[0]), Long.parseLong(parts[1]), Float.parseFloat(parts[2]));
+                boolean ok = transactionService.process(t);
+                System.out.println("RAW_LISTENER line=\"" + line + "\" applied=" + ok);
+            } catch (Exception e) {
+                System.out.println("RAW_PARSE_FAIL line=\"" + line + "\"");
+            }
+        }
     }
 }

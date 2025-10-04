@@ -28,6 +28,15 @@ public class TransactionService {
 
     @Transactional
     public boolean process(Transaction t) {
+        boolean ok = internalProcess(t); // extract existing logic into internalProcess(...) or inline below
+        System.out.println("TX_PROCESS sender=" + (t==null?null:t.getSenderId()) +
+                " recipient=" + (t==null?null:t.getRecipientId()) +
+                " amount=" + (t==null?null:t.getAmount()) +
+                " result=" + ok);
+        return ok;
+    }
+
+    private boolean internalProcess(Transaction t) {
         if (t == null) return false;
         float amount = t.getAmount();
         if (amount <= 0) return false;
